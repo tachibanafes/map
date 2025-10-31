@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>学園祭マップ</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+    }
+
+    #map {
+      width: 100%;
+      height: 100vh;
+    }
+    
+    /* --- タイトルバー --- */
+    #titleBar {
+      width: 100%;
+      height: 50px;
+      background: white;
+      border-bottom: 2px solid #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: bold;
+      z-index: 1002;
+      position: relative;
+      font-family: "Hiragino Kaku Gothic ProN", "メイリオ", sans-serif;
+    }
+
+    /* --- 建物メニュー --- */
+    #buildingMenu {
+      display: flex;
+      justify-content: space-between;
+      background: #f9f9f9;
+      border-bottom: 2px solid #ddd;
+      position: relative;
+      z-index: 1001;
+    }
+
+    .building {
+      flex: 1;
+      text-align: center;
+      padding: 10px 0;
+      border-right: 1px solid #ccc;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s;
+      user-select: none;
+    }
+
+    .building:hover {
+      background: #e0e0e0;
+    }
+
+    .building:last-child {
+      border-right: none;
+    }
+
+    /* --- 折り畳み一覧 --- */
+    .building-list {
+      display: none;
+      background: white;
+      border-bottom: 2px solid #ccc;
+      position: relative;
+      z-index: 1000;
+    }
+
+    .building-list.open {
+      display: block;
+    }
+
+    .building-list div {
+      padding: 8px 15px;
+      border-top: 1px solid #eee;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .building-list div:hover {
+      background: #f0f0f0;
+    }
+
+    /* --- MENUボタン --- */
+    #menuButton {
+      position: absolute;
+      top: 100px;
+      right: 15px;
+      z-index: 1003;
+      background: white;
+      border: 2px solid #888;
+      border-radius: 8px;
+      padding: 10px 15px;
+      cursor: pointer;
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    /* --- サイドメニュー --- */
+    #sideMenu {
+      position: absolute;
+      top: 50;
+      right: -400px;
+      width: 300px;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.97);
+      box-shadow: -3px 0 8px rgba(0,0,0,0.4);
+      transition: right 0.3s;
+      padding: 25px;
+      z-index: 1000;
+      font-size: 20px;
+      display: none;
+    }
+    
+    #sideMenu.open {
+      display: block;
+      right: 0;
+    }
+
+    #sideMenu.open { right: 0; }
+
+    #sideMenu h2 {
+      margin-top: 0;
+      font-size: 22px;
+      border-bottom: 2px solid #ccc;
+      padding-bottom: 8px;
+    }
+
+    .category-item {
+      display: flex;
+      align-items: center;
+      margin: 12px 0;
+      padding: 6px 10px;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+
+    .category-item input[type="checkbox"] {
+      transform: scale(1.4);
+      margin-right: 10px;
+      accent-color: inherit;
+    }
+
+    .cat-amusement { border-color: #ff7f50; color: #ff7f50; accent-color: #ff7f50; }
+    .cat-stage { border-color: #1e90ff; color: #1e90ff; accent-color: #1e90ff; }
+    .cat-yatai { border-color: #32cd32; color: #32cd32; accent-color: #32cd32; }
+    .cat-toilet { border-color: #999; color: #666; accent-color: #999; }
+    .cat-honbu { border-color: #ffd700; color: #b8860b; accent-color: #ffd700; }
+
+    /* --- ピン --- */
+    .custom-pin {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      box-shadow: 0 0 6px rgba(0,0,0,0.4);
+      overflow: hidden;
+      background-size: cover;
+      background-position: center;
+      transition: box-shadow 0.3s, transform 0.3s;
+    }
+
+    /* 光るアニメーション */
+    .highlight {
+      box-shadow: 0 0 20px 8px yellow !important;
+      transform: scale(1.2);
+      transition: 0.3s;
+    }
+
+    .企画・アミューズメント { border-color: #ff7f50; }
+    .ライブステージ { border-color: #1e90ff; }
+    .屋台・展示 { border-color: #32cd32; }
+    .お手洗い { border-color: #999; }
+    .運営本部 { border-color: #ffd700; }
+    
+    
+    /* --- スマホ用レスポンシブ対応 --- */
+@media (max-width: 768px) {
+  #titleBar {
+    font-size: 18px;         /* タイトルバーの文字サイズを縮小 */
+    height: 45px;
+  }
+
+  #buildingMenu {
+    flex-wrap: wrap;         /* 横並びを折り返す */
+  }
+
+  .building {
+    flex: 1 1 33%;           /* 3列表示に変更（B～α棟まで整列） */
+    font-size: 14px;
+    padding: 8px 0;
+  }
+
+  #menuButton {
+    top: 150px;               /* タイトルバー下に位置を調整 */
+    right: 10px;
+    font-size: 20px;
+    padding: 8px 12px;
+  }
+
+  #sideMenu {
+    width: 80%;              /* サイドメニューを画面幅に合わせる */
+    padding: 20px;
+    font-size: 16px;
+  }
+
+  .category-item {
+    margin: 8px 0;
+    padding: 5px 8px;
+  }
+
+  #map {
+    height: calc(100vh - 120px); /* 上部バー分の高さを引く */
+  }
+
+  .custom-pin {
+    width: 45px;             /* ピンサイズを小さく */
+    height: 45px;
+  }
+}
+
+  </style>
+</head>
+<body>
+  <div id="titleBar">学園祭マップ</div>
+  <div id="buildingMenu">
+    <div class="building" data-building="B棟">B棟</div>
+    <div class="building" data-building="C棟">C棟</div>
+    <div class="building" data-building="D棟">D棟</div>
+    <div class="building" data-building="α棟">α棟</div>
+    <div class="building" data-building="FITアリーナ">FITアリーナ</div>
+    <div class="building" data-building="FITホール">FITホール</div>
+    <div class="building" data-building="屋外ステージ">屋外ステージ</div>
+  </div>
+
+  <!-- 各建物の折り畳みエリア -->
+  <div id="buildingListsContainer"></div>
+
+  <button id="menuButton">☰ MENU</button>
+
+  <div id="sideMenu">
+    <h2>カテゴリ</h2>
+    <label class="category-item cat-amusement">
+      <input type="checkbox" class="category-filter" value="企画・アミューズメント" checked> 企画・アミューズメント
+    </label>
+    <label class="category-item cat-stage">
+      <input type="checkbox" class="category-filter" value="ライブステージ" checked> ライブステージ
+    </label>
+    <label class="category-item cat-yatai">
+      <input type="checkbox" class="category-filter" value="屋台・展示" checked> 屋台・展示
+    </label>
+    <label class="category-item cat-toilet">
+      <input type="checkbox" class="category-filter" value="お手洗い" checked> お手洗い
+    </label>
+    <label class="category-item cat-honbu">
+      <input type="checkbox" class="category-filter" value="運営本部" checked> 運営本部
+    </label>
+  </div>
+
+  <div id="map"></div>
+  <div class="survey-footer">
+  今後の立花祭発展のため、是非アンケートへのご協力をお願いします！
+  <a href="https://forms.office.com/r/XHvyNdNLuU" target="_blank">こちらから回答</a>
+</div>
+
+
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map', {
+      crs: L.CRS.Simple,
+      minZoom: -2,
+      maxZoom: 5
+    });
+
+    const imageWidth = 6000;
+    const imageHeight = 3600;
+    const bounds = [[0, 0], [imageHeight, imageWidth]];
+    L.imageOverlay('立花祭マップ.jpg', bounds).addTo(map);
+    map.fitBounds(bounds);
+
+    const pinGroups = {};
+
+    const pinsData = [
+      { coords: [1700, 4500], category: "企画・アミューズメント", building: "FITアリーナ", image: "企画.jpg", popup: "ステージ企画(2階)" },
+      { coords: [1400, 4200], category: "企画・アミューズメント", building: "FITアリーナ", image: "お化け.jpg", popup: "お化け屋敷(1階)" },
+      { coords: [2300, 5000], category: "企画・アミューズメント", building: "FITホール", image: "謎解き.jpg", popup: "謎解きゲーム(2階)" },
+      { coords: [2100, 4850], category: "ライブステージ", building: "FITホール", image: "ライブ.png", popup: "バンド＆ダンスステージ(3階)" },
+      { coords: [2000, 4500], category: "ライブステージ", building: "屋外ステージ", image: "ライブ2.jpeg", popup: "屋外特設バンド＆ダンスステージ" },
+      { coords: [2500, 2300], category: "屋台・展示", building: "B棟", image: "模型部.jpg", popup: "模型部(1階)" },
+      { coords: [2620, 2350], category: "屋台・展示", building: "B棟", image: "防災.jpg", popup: "防災サークル(2階 23PC室)" },
+      { coords: [2700, 2500], category: "屋台・展示", building: "B棟", image: "情報技術.jpg", popup: "情報技術研究部(2階 21,22PC室)" },
+      { coords: [2700, 2800], category: "屋台・展示", building: "B棟", image: "クラ.jpg", popup: "クラ研究室(2階 24PC室)" },
+      { coords: [2550, 3400], category: "屋台・展示", building: "C棟", image: "写真.jpg", popup: "写真部(1階)" },
+      { coords: [2300, 3650], category: "企画・アミューズメント", building: "C棟", image: "作製.jpg", popup: "製作コーナー(2階)" },
+      { coords: [2700, 4000], category: "屋台・展示", building: "D棟", image: "サバイバル.jpg", popup: "サバイバルスポーツ同好会(3階)" },
+      { coords: [2100, 3900], category: "屋台・展示", building: "α棟", image: "麻雀.jpg", popup: "競技麻雀部(4階)" },
+      { coords: [2100, 4100], category: "屋台・展示", building: "α棟", image: "兵頭.jpg", popup: "兵頭研究会(4階)" },
+      { coords: [2000, 3100], category: "屋台・展示", image: "屋台.jpg", popup: "屋台Aエリア" },
+      { coords: [2200, 3400], category: "屋台・展示", image: "屋台2.jpg", popup: "屋台Bエリア" },
+      { coords: [1700, 3600], category: "運営本部",image: "本部.jpg", popup: "運営本部" },
+
+      { coords: [2400, 2800], category: "お手洗い", building: "B棟", image: "toilet.jpg", popup: "お手洗い" },
+      { coords: [2400, 3150], category: "お手洗い", building: "C棟", image: "toilet.jpg", popup: "お手洗い" },
+      { coords: [2400, 4200], category: "お手洗い", building: "D棟", image: "toilet.jpg", popup: "お手洗い" },
+      { coords: [2300, 4250], category: "お手洗い", building: "α棟", image: "toilet.jpg", popup: "お手洗い" },
+      { coords: [1650, 4250], category: "お手洗い", building: "FITアリーナ棟", image: "toilet.jpg", popup: "お手洗い" },
+      { coords: [2100, 5200], category: "お手洗い", building: "FITホール", image: "toilet.jpg", popup: "お手洗い" },
+    ];
+
+    function createCustomIcon(category, imageUrl) {
+      const div = document.createElement('div');
+      div.className = `custom-pin ${category}`;
+      div.style.backgroundImage = `url(${imageUrl})`;
+      return L.divIcon({
+        html: div.outerHTML,
+        className: '',
+        iconSize: [75, 75],
+        iconAnchor: [40, 20]
+      });
+    }
+
+    const markers = [];
+
+    pinsData.forEach(pin => {
+      const marker = L.marker(pin.coords, {
+        icon: createCustomIcon(pin.category, pin.image)
+      }).bindPopup(pin.popup);
+
+      marker.category = pin.category;
+      marker.building = pin.building;
+
+      if (!pinGroups[pin.category]) {
+        pinGroups[pin.category] = L.layerGroup().addTo(map);
+      }
+      pinGroups[pin.category].addLayer(marker);
+      markers.push(marker);
+    });
+
+    document.getElementById('menuButton').addEventListener('click', () => {
+      document.getElementById('sideMenu').classList.toggle('open');
+    });
+
+    document.querySelectorAll('.category-filter').forEach(checkbox => {
+      checkbox.addEventListener('change', e => {
+        const category = e.target.value;
+        if (e.target.checked) pinGroups[category].addTo(map);
+        else map.removeLayer(pinGroups[category]);
+      });
+    });
+
+    // === 建物メニューの折り畳み生成 ===
+    const buildingListsContainer = document.getElementById('buildingListsContainer');
+    const buildings = [...new Set(pinsData.map(p => p.building))];
+
+    buildings.forEach(b => {
+      const listDiv = document.createElement('div');
+      listDiv.className = 'building-list';
+      listDiv.id = `list-${b}`;
+
+      pinsData.filter(p => p.building === b).forEach(p => {
+        const item = document.createElement('div');
+        item.textContent = p.popup;
+        item.addEventListener('click', () => {
+          map.setView(p.coords, 2);
+          highlightPin(p);
+        });
+        listDiv.appendChild(item);
+      });
+
+      buildingListsContainer.appendChild(listDiv);
+    });
+
+    // === 建物クリックで折り畳み開閉 ===
+    document.querySelectorAll('.building').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const bName = btn.dataset.building;
+        document.querySelectorAll('.building-list').forEach(list => {
+          if (list.id === `list-${bName}`) list.classList.toggle('open');
+          else list.classList.remove('open');
+        });
+      });
+    });
+
+    // === ピン強調表示 ===
+    function highlightPin(pin) {
+      const iconEl = document.querySelectorAll('.custom-pin');
+      iconEl.forEach(el => el.classList.remove('highlight'));
+      setTimeout(() => {
+        const target = [...document.querySelectorAll('.custom-pin')].find(el =>
+          el.style.backgroundImage.includes(pin.image)
+        );
+        if (target) {
+          target.classList.add('highlight');
+          setTimeout(() => target.classList.remove('highlight'), 2000);
+        }
+      }, 300);
+    }
+  </script>
+
+</body>
+</html>
