@@ -1,0 +1,176 @@
+body {
+  margin: 0;
+  font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", sans-serif;
+  background-color: #f8f8f8;
+}
+
+/* タイトルバー */
+.title-bar {
+  background-color: #333;
+  color: white;
+  text-align: center;
+  padding: 16px;
+  font-size: 24px;
+}
+
+/* 建物メニュー */
+.building-menu {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-around;
+  background-color: #fff;
+  border-bottom: 2px solid #ccc;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.menu-item {
+  flex: 1;
+  padding: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+  transition: background-color 0.2s;
+}
+
+.menu-item:hover {
+  background-color: #e0f0ff;
+}
+
+/* ハンバーガーメニュー */
+.hamburger {
+  position: fixed;
+  top: 90px;
+  left: 20px;
+  z-index: 1000;
+  cursor: pointer;
+  text-align: center;
+}
+
+.bar {
+  width: 35px;
+  height: 4px;
+  background-color: #333;
+  margin: 6px 0;
+  border-radius: 2px;
+}
+
+.menu-label {
+  font-size: 12px;
+  color: #333;
+  font-weight: bold;
+  margin-top: -4px;
+}
+
+/* サイドメニュー */
+.side-menu {
+  position: fixed;
+  top: 0;
+  left: -260px;
+  width: 240px;
+  height: 100%;
+  background-color: #fff;
+  box-shadow: 2px 0 6px rgba(0,0,0,0.2);
+  padding: 20px;
+  transition: 0.3s;
+  z-index: 999;
+  overflow-y: auto;
+}
+
+.side-menu.open {
+  left: 0;
+}
+
+.side-menu h2 {
+  margin-top: 0;
+  font-size: 18px;
+  border-bottom: 2px solid #ddd;
+  padding-bottom: 8px;
+}
+
+.side-menu ul {
+  list-style: none;
+  padding: 0;
+}
+
+.side-menu li {
+  margin: 10px 0;
+}
+
+/* マップ表示 */
+.map-container {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 150px);
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.map-image {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+/* ピンデザイン */
+.pin {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 3px solid white;
+  box-shadow: 0 0 8px rgba(0,0,0,0.3);
+  transform: translate(-50%, -50%);
+  overflow: hidden;
+}
+
+.pin img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 出店・企画リスト */
+.building-content {
+  display: none;
+  background-color: #fff;
+  border-top: 1px solid #ddd;
+  padding: 20px;
+}
+
+.building-content h2 {
+  margin-top: 0;
+  color: #0066cc;
+}
+
+.building-content ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.building-content li {
+  padding: 6px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.survey-footer {
+  position: sticky;
+  bottom: 0;
+  width: 100%;
+  background: #ffefc6;
+  color: #333;
+  text-align: center;
+  padding: 10px;
+  font-size: 14px;
+  border-top: 2px solid #f5c542;
+  z-index: 900;
+}
+
+.survey-footer a {
+  color: #007bff;
+  text-decoration: underline;
+}
